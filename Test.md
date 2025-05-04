@@ -3,7 +3,11 @@ local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local OreServiceRE = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("OreService"):WaitForChild("RE"):WaitForChild("RequestRandomOre")
+local KnitPackages = ReplicatedStorage:WaitForChild("Packages")
+local Knit = KnitPackages:WaitForChild("Knit")
+local OreService = Knit:WaitForChild("Services"):WaitForChild("OreService")
+local RequestRandomOreRE = OreService:WaitForChild("RE"):WaitForChild("RequestRandomOre")
+local SellAllRE = OreService:WaitForChild("RE"):WaitForChild("SellAll")
 
 -- Create the ScreenGui
 local screenGui = Instance.new("ScreenGui")
@@ -14,7 +18,7 @@ screenGui.ResetOnSpawn = false
 -- Create the main frame
 local mainFrame = Instance.new("Frame")
 mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0.25, 0, 0.35, 0) -- Increased height to accommodate the text
+mainFrame.Size = UDim2.new(0.25, 0, 0.45, 0) -- Increased height to accommodate the new button
 mainFrame.Position = UDim2.new(0.5, -mainFrame.Size.X.Scale / 2, 0.5, -mainFrame.Size.Y.Scale / 2)
 mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 mainFrame.BackgroundColor3 = Color3.new(0.8, 0.8, 0.8)
@@ -28,30 +32,30 @@ local dragStart = nil
 local initialPosition = nil
 
 mainFrame.InputBegan:Connect(function(input)
-  if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-    dragging = true
-    dragStart = input.Position
-    initialPosition = mainFrame.Position
-    input.Changed:Connect(function()
-      if input.UserInputState == Enum.UserInputState.End then
-        dragging = false
-      end
-    end)
-  end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		initialPosition = mainFrame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
 end)
 
 mainFrame.InputChanged:Connect(function(input)
-  if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-    if dragging then
-      local delta = input.Position - dragStart
-      mainFrame.Position = UDim2.new(
-          initialPosition.X.Scale,
-          initialPosition.X.Offset + delta.X,
-          initialPosition.Y.Scale,
-          initialPosition.Y.Offset + delta.Y
-      )
-    end
-  end
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		if dragging then
+			local delta = input.Position - dragStart
+			mainFrame.Position = UDim2.new(
+				initialPosition.X.Scale,
+				initialPosition.X.Offset + delta.X,
+				initialPosition.Y.Scale,
+				initialPosition.Y.Offset + delta.Y
+			)
+		end
+	end
 end)
 
 mainFrame.Parent = screenGui
@@ -59,7 +63,7 @@ mainFrame.Parent = screenGui
 -- Create the start button (renamed)
 local startButton = Instance.new("TextButton")
 startButton.Name = "StartFarmButton"
-startButton.Size = UDim2.new(0.9, 0, 0.25, 0)
+startButton.Size = UDim2.new(0.9, 0, 0.2, 0)
 startButton.Position = UDim2.new(0.05, 0, 0.05, 0)
 startButton.Text = "Start Farm"
 startButton.BackgroundColor3 = Color3.new(0.6, 0.8, 0.6)
@@ -71,8 +75,8 @@ startButton.Parent = mainFrame
 -- Create the stop button (renamed)
 local stopButton = Instance.new("TextButton")
 stopButton.Name = "StopFarmButton"
-stopButton.Size = UDim2.new(0.9, 0, 0.25, 0)
-stopButton.Position = UDim2.new(0.05, 0, 0.35, 0)
+stopButton.Size = UDim2.new(0.9, 0, 0.2, 0)
+stopButton.Position = UDim2.new(0.05, 0, 0.3, 0)
 stopButton.Text = "Stop Farm"
 stopButton.BackgroundColor3 = Color3.new(0.8, 0.6, 0.6)
 stopButton.TextColor3 = Color3.new(0, 0, 0)
@@ -80,10 +84,22 @@ stopButton.Font = Enum.Font.SourceSansBold
 stopButton.TextSize = 20
 stopButton.Parent = mainFrame
 
+-- Create the "Sell All" button
+local sellAllButton = Instance.new("TextButton")
+sellAllButton.Name = "SellAllButton"
+sellAllButton.Size = UDim2.new(0.9, 0, 0.2, 0)
+sellAllButton.Position = UDim2.new(0.05, 0, 0.55, 0)
+sellAllButton.Text = "Sell All"
+sellAllButton.BackgroundColor3 = Color3.new(1, 1, 0) -- Yellow color
+sellAllButton.TextColor3 = Color3.new(0, 0, 0)
+sellAllButton.Font = Enum.Font.SourceSansBold
+sellAllButton.TextSize = 20
+sellAllButton.Parent = mainFrame
+
 -- Create the text label at the bottom
 local bottomText = Instance.new("TextLabel")
 bottomText.Name = "BottomTextLabel"
-bottomText.Size = UDim2.new(1, 0, 0.2, 0)
+bottomText.Size = UDim2.new(1, 0, 0.15, 0)
 bottomText.Position = UDim2.new(0, 0, 0.8, 0) -- Positioned at the bottom
 bottomText.Text = "Untitled Drill Game\nMade by Namharyboss107"
 bottomText.BackgroundColor3 = Color3.new(1, 1, 1)
@@ -99,51 +115,63 @@ bottomText.TextYAlignment = Enum.TextYAlignment.Top -- Align text to the top
 -- Local variable to control the loop
 local isFarming = false
 local farmLoop = nil
-local farmSpeed = 0.1 -- Set the desired speed here
+local farmSpeed = 0.001 -- Changed farm speed to 0.001
 
 -- Function to start the ore farming loop (renamed)
 local function startOreFarming()
-  if not isFarming then
-    isFarming = true
-    farmLoop = coroutine.create(function()
-      while isFarming do
-        wait(farmSpeed) -- Use the 'farmSpeed' variable
-        -- Check if OreServiceRE exists before firing
-        if OreServiceRE then
-          OreServiceRE:FireServer()
-          print("Requested random ore from server.")
-        else
-          warn("OreService.RE.RequestRandomOre RemoteEvent not found!")
-          isFarming = false -- Stop the loop if the event is missing
-        end
-      end
-      print("Ore farming loop stopped.")
-    end)
-    coroutine.resume(farmLoop)
-    startButton.Text = "Farming..."
-    startButton.TextColor3 = Color3.new(0.5, 0.5, 0.5) -- Indicate it's running
-    startButton.ButtonState = Enum.ButtonState.Disabled -- Prevent multiple starts
-    stopButton.ButtonState = Enum.ButtonState.Enabled
-    stopButton.TextColor3 = Color3.new(0, 0, 0)
-  end
+	if not isFarming then
+		isFarming = true
+		farmLoop = coroutine.create(function()
+			while isFarming do
+				wait(farmSpeed) -- Use the 'farmSpeed' variable
+				-- Check if RequestRandomOreRE exists before firing
+				if RequestRandomOreRE then
+					RequestRandomOreRE:FireServer()
+					print("Requested random ore from server.")
+				else
+					warn("OreService.RE.RequestRandomOre RemoteEvent not found!")
+					isFarming = false -- Stop the loop if the event is missing
+				end
+			end
+			print("Ore farming loop stopped.")
+		end)
+		coroutine.resume(farmLoop)
+		startButton.Text = "Farming..."
+		startButton.TextColor3 = Color3.new(0.5, 0.5, 0.5) -- Indicate it's running
+		startButton.ButtonState = Enum.ButtonState.Disabled -- Prevent multiple starts
+		stopButton.ButtonState = Enum.ButtonState.Enabled
+		stopButton.TextColor3 = Color3.new(0, 0, 0)
+	end
 end
 
 -- Function to stop the ore farming loop (renamed)
 local function stopOreFarming()
-  if isFarming then
-    isFarming = false
-    -- The loop will stop on the next iteration due to the 'isFarming' check
-    startButton.Text = "Start Farm"
-    startButton.TextColor3 = Color3.new(0, 0, 0)
-    startButton.ButtonState = Enum.ButtonState.Enabled
-    stopButton.ButtonState = Enum.ButtonState.Disabled
-    stopButton.TextColor3 = Color3.new(0.5, 0.5, 0.5) -- Indicate it's stopped
-  end
+	if isFarming then
+		isFarming = false
+		-- The loop will stop on the next iteration due to the 'isFarming' check
+		startButton.Text = "Start Farm"
+		startButton.TextColor3 = Color3.new(0, 0, 0)
+		startButton.ButtonState = Enum.ButtonState.Enabled
+		stopButton.ButtonState = Enum.ButtonState.Disabled
+		stopButton.TextColor3 = Color3.new(0.5, 0.5, 0.5) -- Indicate it's stopped
+	end
+end
+
+-- Function to handle the "Sell All" button click
+local function sellAllOres()
+	-- Check if SellAllRE exists before firing
+	if SellAllRE then
+		SellAllRE:FireServer()
+		print("Sent request to sell all ores.")
+	else
+		warn("OreService.RE.SellAll RemoteEvent not found!")
+	end
 end
 
 -- Connect the button click events (renamed functions)
 startButton.MouseButton1Click:Connect(startOreFarming)
 stopButton.MouseButton1Click:Connect(stopOreFarming)
+sellAllButton.MouseButton1Click:Connect(sellAllOres)
 
 -- Initially disable the stop button
 stopButton.ButtonState = Enum.ButtonState.Disabled
